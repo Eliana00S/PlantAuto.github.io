@@ -1,0 +1,251 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: serif;
+}
+
+body {
+  background-color: #e6e3d5;
+  padding: 20px;
+}
+
+/* Circle buttons */
+.header {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.circle-btn {
+  width: 40px;
+  height: 40px;
+  background-color: #2f4f2f;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 18px;
+}
+.account-btn {
+  width: 45px;
+  height: 45px;
+  font-size: 20px;
+  border-radius: 50%;
+  background-color: #2f4f2f;
+  color: white;
+  border: none;
+  cursor: pointer;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+
+/* New gear-wrapper for positioning */
+/* Wrapper to allow relative positioning */
+.gear-wrapper {
+  position: relative;
+}
+.dropdown{
+  display: inline-block;
+}
+.dropdown button{
+  width: 45px;
+  height: 45px;
+  font-size: 20px;
+  border-radius: 50%;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #2f4f2f;
+  color: white; 
+  padding: 10px 15px;
+  border: none;
+  cursor: pointer;
+
+}
+.dropdown a{
+  display: block;
+  color: black;
+  text-decoration: none;
+  padding: 10px 15px;
+}
+.dropdown .content{
+  display: none;
+  position: absolute;
+  background-color: #a3b18a;
+  min-width: 100px;
+  box-shadow: 2px 2px 5px hsl(0, 0%, 0%, 0.8);
+}
+.dropdown:hover .content{
+  display: block;
+}
+.dropdown:hover button{
+  background-color: hsl(0, 0%, 60%);
+}
+.dropdown a:hover{
+  background-color: hsl(0, 0%, 90%);
+}
+
+.hidden {
+  display: none;
+}
+
+/* Brand title thing */
+.brand {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+.brand-name {
+  font-size: 40px;
+  font-weight: bold;
+  color: #588157;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.brand-name i {
+  font-size: 50px;
+}
+
+
+/* Remove fnction */
+.plant-card.remove-hover {
+  background-color: rgba(200, 50, 50, 0.15);
+  border-color: #991b1b;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  cursor: pointer;
+}
+
+/* Add Plant frame function */
+.add-plant-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #f6f4ef;
+  z-index: 1000;
+  padding: 40px;
+  overflow-y: auto;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.add-plant-panel h2 {
+  font-size: 32px;
+  color: #335c3b;
+  margin-bottom: 10px;
+}
+
+#plant-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 100%;
+  max-width: 400px;
+}
+
+#plant-form input,
+#plant-form select {
+  padding: 10px;
+  font-size: 16px;
+  border: 2px solid #588157;
+  border-radius: 5px;
+}
+
+#plant-form button {
+  background-color: #588157;
+  color: white;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+#plant-form button:hover {
+  background-color: #466944;
+}
+
+.ideal-values {
+  background-color: #e6e3d5;
+  padding: 10px;
+  border-radius: 5px;
+  font-size: 15px;
+  color: #2f4f2f;
+}
+
+.hidden {
+  display: none;
+}
+
+/* Plant cards */
+.plant-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 30px;
+}
+
+.plant-card {
+  background-color: white;
+  border: 3px solid #335c3b;
+  padding: 15px;
+  max-width: 300px;
+  flex: 1 1 280px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.plant-card img {
+  width: 100%;
+  height: auto;
+  border: 3px solid #2f4f2f;
+  margin-bottom: 10px;
+}
+
+.plant-info p {
+  color: #2f4f2f;
+  margin-bottom: 5px;
+  font-size: 16px;
+}
+
+.ideal-line {
+  color: #e6e3d5;
+  margin-left: 20px;
+  margin-bottom: 5px;
+  font-size: 16px;
+}
+
+.water-btn {
+  margin-top: 10px;
+  background-color: #588157;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.water-btn:hover {
+  background-color: #466944;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .plant-container {
+    flex-direction: column;
+    align-items: center;
+  }
+}
