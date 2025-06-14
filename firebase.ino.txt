@@ -171,6 +171,11 @@ void loop() {
     }
 }
 
+if (Firebase.ready()) {
+  String pumpStatus = pumpRunning ? "Watering" : "Not Watering";
+  Firebase.RTDB.setString(&fbdo, "/plant1/status", pumpStatus);
+}
+
 
 
   if (millis() - lastDisplay >= DISPLAY_INTERVAL) {
