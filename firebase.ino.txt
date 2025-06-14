@@ -151,12 +151,26 @@ void loop() {
   Serial.print("%  Temp: "); Serial.print(tempF);
   Serial.print("F  Humidity: "); Serial.println(hum);
 
-
+//Elly added and edited for the website (water button)
   if (Firebase.ready()) {
-    Firebase.RTDB.setInt(&fbdo, "/plant1/moisture", pct);
-    Firebase.RTDB.setFloat(&fbdo, "/plant1/temperatureF", tempF);
-    Firebase.RTDB.setFloat(&fbdo, "/plant1/humidity", hum);
-  }
+  String cmd;
+    if (Firebase.RTDB.getString(&fbdo, "/plant1/manualCommand")) {
+      cmd = fbdo.stringData();
+  
+      if (cmd == "START" && !pumpRunning) {
+        digitalWrite(PIN_PUMP, HIGH);
+        pumpRunning = true;
+        lastPumpRun = millis();
+      } else if (cmd == "STOP" && pumpRunning) {
+        digitalWrite(PIN_PUMP, LOW);
+        pumpRunning = false;
+      }
+  
+      // Clear command after executing
+      Firebase.RTDB.setString(&fbdo, "/plant1/manualCommand", "");
+    }
+}
+
 
 
   if (millis() - lastDisplay >= DISPLAY_INTERVAL) {
