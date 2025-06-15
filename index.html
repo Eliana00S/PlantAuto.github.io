@@ -182,37 +182,51 @@
   </script>
 
   <script>
-    function attachWaterButtonHandlers() {
-      const waterButtons = document.querySelectorAll('.water-btn');
+  function attachWaterButtonHandlers() {
+    const waterButtons = document.querySelectorAll('.water-btn');
 
-      waterButtons.forEach(button => {
-        button.removeEventListener('click', toggleWatering); // Avoid duplicates
-        button.addEventListener('click', toggleWatering);
-      });
-    }
+    waterButtons.forEach(button => {
+      button.removeEventListener('click', toggleWatering); // Avoid duplicates
+      button.addEventListener('click', toggleWatering);
+    });
+  }
 
-    function toggleWatering(e) {
-      const card = e.target.closest('.plant-card');
-      const statusText = card.querySelector('.status-text');
-      const button = card.querySelector('.water-btn');
+  function toggleWatering(e) {
+    const card = e.target.closest('.plant-card');
+    const statusText = card.querySelector('.status-text');
+    const button = card.querySelector('.water-btn');
 
-      const isWatering = statusText.textContent === 'Watering';
+    const isWatering = statusText.textContent === 'Watering';
 
-      // Send command to Firebase
-      const command = isWatering ? "STOP" : "START";
-      firebase.database().ref("plant1/manualCommand").set(command);
+    // Send command to Firebase
+    const command = isWatering ? "STOP" : "START";
+    firebase.database().ref("plant1/manualCommand").set(command);
 
-      // Optional: update the button while you wait for Firebase to respond
-      button.textContent = isWatering ? "Water Plant" : "Stop Watering";
-    }
+    // Optional: update the button while you wait for Firebase to respond
+    button.textContent = isWatering ? "Water Plant" : "Stop Watering";
+  }
+
+  // Attach handlers to existing buttons on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    attachWaterButtonHandlers();
+  });
+
+  // Re-attach when a new plant is added
+  document.getElementById('plant-form').addEventListener('submit', (e) => {
+    setTimeout(attachWaterButtonHandlers, 0);
+  });
+</script>
+
 
 
 
     // Attach handlers to existing buttons on page load
-    attachWaterButtonHandlers();
+    document.addEventListener('DOMContentLoaded', () => {
+      attachWaterButtonHandlers();
+    });
 
     // Re-attach when a new plant is added
-    plantForm.addEventListener('submit', () => {
+    document.getElementById('plant-form').addEventListener('submit', (e) => {
       setTimeout(attachWaterButtonHandlers, 0);
     });
   </script>
