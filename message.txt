@@ -1,0 +1,168 @@
+#include <Wire.h>
+#include <hd44780.h>
+#include <hd44780ioClass/hd44780_I2Cexp.h>
+#include <DHT.h>
+#include <WiFiS3.h>
+#include <WiFiSSLClient.h>
+#include <ArduinoHttpClient.h>
+
+const char* ssid = "ellyPhone";
+const char* password = "appa1111";
+
+#define DATABASE_SECRET "G0JSjR2lktv58WWXMiSBIIABBuREiOadCmwrTyMP"
+
+hd44780_I2Cexp lcd;
+#define DHTPIN 3
+#define DHTTYPE DHT11
+DHT dht(DHTPIN, DHTTYPE);
+
+const byte PIN_LED_RED = 8;
+const byte PIN_LED_YELLOW = 9;
+const byte PIN_LED_GREEN = 10;
+const byte PIN_SOIL = A0;
+const byte PIN_PUMP = 6;
+
+const int dryVal = 512;
+const int wetVal = 310;
+const bool ACTIVE_LOW = false;
+const byte AVG_SAMPLES = 10;
+int buf[AVG_SAMPLES] = {0};
+byte bufIdx = 0;
+
+const unsigned long DISPLAY_INTERVAL = 2000;
+const unsigned long PUMP_DURATION = 3000;
+const unsigned long PUMP_COOLDOWN = 10000;
+const unsigned long FIREBASE_INTERVAL = 1000;
+
+unsigned long lastDisplay = 0;
+unsigned long lastPumpRun = 0;
+unsigned long lastFirebaseUpdate = 0;
+bool pumpRunning = false;
+
+WiFiSSLClient wifiClient;
+HttpClient client = HttpClient(wifiClient, "syeva-e7eeb-default-rtdb.firebaseio.com", 443);
+
+void setLED(byte pin, bool on) {
+  digitalWrite(pin, (ACTIVE_LOW ? !on : on));
+}
+
+void updateLEDs(int pct) {
+  setLED(PIN_LED_RED, pct <= 20);
+  setLED(PIN_LED_YELLOW, pct > 20 && pct <= 50);
+  setLED(PIN_LED_GREEN, pct > 50);
+}
+
+void setup() {
+  Serial.begin(9600);
+  dht.begin();
+  int status = lcd.begin(16, 2);
+  if (status) {
+    Serial.print("LCD failed. Status: ");
+    Serial.println(status);
+    while (1);
+  }
+  lcd.backlight();
+
+  pinMode(PIN_LED_RED, OUTPUT);
+  pinMode(PIN_LED_YELLOW, OUTPUT);
+  pinMode(PIN_LED_GREEN, OUTPUT);
+  pinMode(PIN_PUMP, OUTPUT);
+  digitalWrite(PIN_PUMP, LOW);
+
+  lcd.setCursor(0, 0); lcd.print("Plant Monitor :)");
+  delay(2000);
+  lcd.setCursor(0, 1); lcd.print("Booting....");
+  delay(2000);
+  lcd.clear();
+
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi");
+  
+  lcd.setCursor(0, 0); lcd.print("WiFi Connecting");
+  int dotCount = 0;
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+    
+    lcd.setCursor(dotCount, 1);
+    lcd.print(".");
+    dotCount++;
+    if (dotCount > 15) {
+      lcd.setCursor(0, 1);
+      lcd.print("                "); 
+      dotCount = 0;
+    }
+  }
+  Serial.println("\n✅ WiFi Connected!");
+}
+
+void loop() {
+  buf[bufIdx] = analogRead(PIN_SOIL);
+  bufIdx = (bufIdx + 1) % AVG_SAMPLES;
+  long sum = 0;
+  for (byte i = 0; i < AVG_SAMPLES; i++) sum += buf[i];
+  int pct = constrain(map(sum / AVG_SAMPLES, dryVal, wetVal, 0, 100), 0, 100);
+
+  float tempF = dht.readTemperature() * 1.8 + 32;
+  float hum = dht.readHumidity();
+
+  Serial.print("Moisture: "); Serial.print(pct);
+  Serial.print("% (Raw: "); Serial.print(sum / AVG_SAMPLES); Serial.print(") ");
+  Serial.print("Temp: "); Serial.print(tempF);
+  Serial.print("F  Humidity: "); Serial.println(hum);
+
+  updateLEDs(pct);
+
+  if (pct <= 20 && !pumpRunning && millis() - lastPumpRun > PUMP_COOLDOWN) {
+    digitalWrite(PIN_PUMP, HIGH);
+    pumpRunning = true;
+    lastPumpRun = millis();
+  }
+  if (pumpRunning && millis() - lastPumpRun >= PUMP_DURATION) {
+    digitalWrite(PIN_PUMP, LOW);
+    pumpRunning = false;
+  }
+
+  if (millis() - lastFirebaseUpdate >= FIREBASE_INTERVAL) {
+    lastFirebaseUpdate = millis();
+
+    String path = "/plants/Doobert.json?auth=" + String(DATABASE_SECRET);
+    String payload = "{";
+    payload += "\"status\":\"" + String(pumpRunning ? "Watering" : "Not Watering") + "\",";
+    payload += "\"moisture\":" + String(pct) + ",";
+    payload += "\"temperature\":" + String(tempF, 1) + ",";
+    payload += "\"humidity\":" + String(hum, 1);
+    payload += "}";
+
+    client.beginRequest();
+    client.patch(path);
+    client.sendHeader("Content-Type", "application/json");
+    client.sendHeader("Content-Length", payload.length());
+    client.beginBody();
+    client.print(payload);
+    client.endRequest();
+
+int statusCode = client.responseStatusCode();
+
+// Drain response to avoid blocking
+while (client.available()) {
+  char c = client.read();        // read each char
+  //Serial.write(c);               // optional: print it to Serial
+}
+
+    if (statusCode >= 200 && statusCode < 300) {
+      Serial.println("✅ REST Firebase data updated.");
+    } else {
+      Serial.println("❌ REST Firebase update failed.");
+    }
+  }
+
+  if (millis() - lastDisplay >= DISPLAY_INTERVAL) {
+    lastDisplay = millis();
+    lcd.setCursor(0, 0);
+    lcd.print("M:"); lcd.print(pct); lcd.print("% T:"); lcd.print(tempF); lcd.print("F");
+    lcd.setCursor(0, 1);
+    lcd.print("H:"); lcd.print(hum); lcd.print("% ");
+    lcd.print(pct <= 20 ? "WATER" : "OK   ");
+  }
+}

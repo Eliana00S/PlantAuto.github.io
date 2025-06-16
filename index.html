@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Plant Tracker</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+</head>
+
+
+<!-- Firebase + Live Update -->
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBHfJYPcziGNGotYEVSpm38mMvHy7YTmjE",
+    authDomain: "syeva-e7eeb.firebaseapp.com",
+    projectId: "syeva-e7eeb",
+    storageBucket: "syeva-e7eeb.appspot.com",
+    messagingSenderId: "523524784880",
+    appId: "1:523524784880:web:6254b9cd08c0a220caf835",
+    measurementId: "G-RD721SQRYQ"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const database = firebase.database();
+
+
+const plantRef = database.ref("plants");
+plantRef.on("value", (snapshot) => {
+  const plants = snapshot.val();
+  plantContainer.innerHTML = ""; // Clear all cards first
+
+  if (plants) {
+    Object.entries(plants).forEach(([name, data]) => {
+      const card = document.createElement("div");
+      card.classList.add("plant-card");
+
+      card.innerHTML = `
+        <img src="${data.imageUrl || 'https://cdn-icons-png.flaticon.com/512/4306/4306600.png'}" alt="${data.breed}" />
+        <div class="plant-info">
+          <p><strong>Name:</strong> ${name}</p>
+          <p><strong>Breed:</strong> ${data.breed}</p>
+          <p class="ideal-line"><strong>Ideal Humidity levels:</strong> ${breedData[data.breed]?.humidity ?? "?"}%</p>
+          <p class="ideal-line"><strong>Ideal Moisture levels:</strong> ${breedData[data.breed]?.moisture ?? "?"}%</p>
+          <p><strong>Temperature:</strong> ${data.temperature?.toFixed(1) ?? "?"}°F</p>
+          <p><strong>Humidity:</strong> ${data.humidity?.toFixed(1) ?? "?"}%</p>
+          <p><strong>Moisture:</strong> ${data.moisture ?? "?"}%</p>
+
+          <p><strong>Status:</strong> <span class="status-text">${data.status ?? "Unknown"}</span></p>
+        </div>
+      `;
+
+      plantContainer.appendChild(card);
+    });
+
+    attachWaterButtonHandlers(); // bind click listeners again
+  }
+});
+
+</script>
+
+<body>
+  <div class="header">
+    <button class="account-btn">
+      <i class="fas fa-user"></i>
+    </button>
+    
+    <div class="dropdown">
+      <button class="button">
+        <i class="fas fa-cog"></i>
+      </button>
+      <div class="content">
+        <a href="#" id="add-plant">Add Plant</a>
+        <a href="#" id="remove-plant">Remove Plant</a>
+      </div>
+    </div>
+
+    <div class="brand">
+      <span class="brand-name">PlantAuto <i class="fas fa-leaf"></i></span>
+    </div>
+
+    <!-- Add Plant Frame (hidden by default) -->
+    <div class="add-plant-panel hidden">
+      <h2>Add a New Plant</h2>
+      <form id="plant-form">
+        <label for="plant-name">Plant Name:</label>
+        <input type="text" id="plant-name" required />
+
+        <label for="plant-breed">Breed:</label>
+        <select id="plant-breed" required>
+          <option value="">-- Select a breed --</option>
+          <option value="Sweet Pepper">Sweet Pepper</option>
+          <option value="Alocasia">Alocasia</option>
+          <option value="Maidenhair Fern">Maidenhair Fern</option>
+        </select>
+
+        <div class="ideal-values" id="ideal-values"></div>
+
+        <label for="plant-image">Upload Image (optional):</label>
+        <input type="file" id="plant-image" accept="image/*" />
+
+        <button type="submit">Add Plant</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="plant-container">
+    </div>
+
+    </div>
+  </div>
+
+  <script>
+    let isRemoveMode = false;
+
+    const removeBtn = document.getElementById('remove-plant');
+
+    function activateRemoveMode() {
+      isRemoveMode = true;
+
+      const plantCards = document.querySelectorAll('.plant-card');
+
+      plantCards.forEach(card => {
+        card.addEventListener('mouseenter', handleHoverIn);
+        card.addEventListener('mouseleave', handleHoverOut);
+        card.addEventListener('click', handleRemove);
+      });
+    }
+
+    function handleHoverIn(e) {
+      if (isRemoveMode) {
+        e.currentTarget.classList.add('remove-hover');
+      }
+    }
+
+    function handleHoverOut(e) {
+      e.currentTarget.classList.remove('remove-hover');
+    }
+
+    function handleRemove(e) {
+      if (isRemoveMode) {
+        const card = e.currentTarget;
+        const nameP = card.querySelector("p");
+        const nameMatch = nameP?.textContent.match(/Name:\s*(.+)/);
+        const name = nameMatch ? nameMatch[1].trim() : null;
+
+        if (name) {
+          firebase.database().ref("plants/" + name).remove()
+            .then(() => {
+              console.log(`✅ Removed ${name} from database`);
+            })
+        }
+
+        card.remove();
+        isRemoveMode = false;
+
+        document.querySelectorAll('.plant-card').forEach(c => {
+          c.classList.remove('remove-hover');
+          const cleanCard = c.cloneNode(true);
+          c.replaceWith(cleanCard);
+        });
+      }
+    }
+
+    removeBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      activateRemoveMode();
+    });
+  </script>
+
+  <script>
+  function attachWaterButtonHandlers() {
+    const waterButtons = document.querySelectorAll('.water-btn');
+
+    waterButtons.forEach(button => {
+      button.removeEventListener('click', toggleWatering); // Avoid duplicates
+      button.addEventListener('click', toggleWatering);
+    });
+  }
+
+  function toggleWatering(e) {
+    const card = e.target.closest('.plant-card');
+    const statusText = card.querySelector('.status-text');
+    const button = card.querySelector('.water-btn');
+
+    const nameP = card.querySelector("p");
+    const nameMatch = nameP?.textContent.match(/Name:\s*(.+)/);
+    const name = nameMatch ? nameMatch[1].trim() : null;
+
+    if (!name) return;
+
+    const isWatering = statusText.textContent === 'Watering';
+    const command = isWatering ? "STOP" : "START";
+
+    firebase.database().ref("plants/" + name + "/manualCommand").set(command);
+
+    // Optional: update the button while you wait for Firebase to respond
+    button.textContent = isWatering ? "Water Plant" : "Stop Watering";
+  }
+
+  // Attach handlers to existing buttons on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    attachWaterButtonHandlers();
+  });
+
+  // Re-attach when a new plant is added
+  document.getElementById('plant-form').addEventListener('submit', (e) => {
+    setTimeout(attachWaterButtonHandlers, 0);
+  });
+</script>
+
+  </script>
+
+
+  <script>
+    const breedData = {
+      "Boston Fern": { humidity: 20, moisture: 85 },
+      "Alocasia": { humidity: 30, moisture: 75 },
+      "Maidenhair Fern": { humidity: 40, moisture: 90 }, 
+      "Sweet Pepper": { humidity: 10, moisture: 70 }
+    };
+
+    const addPlantPanel = document.querySelector('.add-plant-panel');
+    const plantContainer = document.querySelector('.plant-container');
+    const plantForm = document.getElementById('plant-form');
+    const breedSelect = document.getElementById('plant-breed');
+    const idealValuesBox = document.getElementById('ideal-values');
+
+    //Toggle Add Plant Panel
+    document.getElementById('add-plant').addEventListener('click', (e) => {
+      e.preventDefault();
+      addPlantPanel.classList.remove('hidden');
+      plantContainer.classList.add('hidden');
+    });
+
+    // Show ideal values when breed is selected
+    breedSelect.addEventListener('change', () => {
+      const selected = breedSelect.value;
+      if (breedData[selected]) {
+        const { humidity, moisture } = breedData[selected];
+        idealValuesBox.innerHTML = `
+          <p><strong>Ideal Humidity:</strong> ${humidity}%</p>
+          <p><strong>Ideal Moisture:</strong> ${moisture}%</p>
+        `;
+      } else {
+        idealValuesBox.innerHTML = '';
+      }
+    });
+
+    // Form submission: Add plant
+    plantForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const name = document.getElementById('plant-name').value.trim();
+      const breed = document.getElementById('plant-breed').value;
+      const imageInput = document.getElementById('plant-image');
+      const file = imageInput.files[0];
+
+      let imageUrl = "https://cdn-icons-png.flaticon.com/512/4306/4306600.png"; // default
+
+if (file) {
+  const reader = new FileReader();
+  
+  const result = await new Promise((resolve, reject) => {
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject("Image read failed");
+    reader.readAsDataURL(file);
+  });
+
+  imageUrl = result;
+}
+
+
+      firebase.database().ref("plants/" + name).set({
+        name: name,
+        breed: breed,
+        humidity: 0,
+        moisture: 0,
+        temperature: 0,
+        status: "Not Watering",
+        imageUrl: imageUrl
+      });
+      
+      // Reset form
+      plantForm.reset();
+      idealValuesBox.innerHTML = '';
+      addPlantPanel.classList.add('hidden');
+      plantContainer.classList.remove('hidden');
+    });
+  </script>
+</body>
+</html>
